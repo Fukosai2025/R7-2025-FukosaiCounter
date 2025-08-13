@@ -5,7 +5,10 @@
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<title>カウンター</title>
 	<style>
-		html{ height: 100%; }
+		html{ 
+            height: 100%;
+            touch-action: none
+        }
 		body{
 			width: calc(100% - 16px);
 			height: calc(100% - 16px);
@@ -152,7 +155,6 @@
 </head>
 <header>
 	<h1 class="header">入退場管理Ver 5  2025附高祭</h1>
-	<h3>ボタン連打中は送信されません。ボタンを押さない状態が3秒続くと一斉に送信されます。Googleのサーバーをまもるための措置です。</h3>
 	<style>.header {
 		text-align: center;
 		color: black;
@@ -330,4 +332,5 @@
 		});
 	</script>
 </body>
+
 </html>
