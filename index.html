@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<meta name="viewport" content="width=device-width, initial-scale=1">
+	<title>カウンター</title>
+	<style>
+		html{ height: 100%; }
+		body{
+			width: calc(100% - 16px);
+			height: calc(100% - 16px);
+			display: flex;
+			flex-direction: column;
+		}
+		#main{
+			width: 95%; height: 70%;
+			margin-left: auto; margin-right: auto;
+			display: flex;
+			flex-direction: column;
+			flex-direction: row;
+			flex-wrap: wrap;
+			gap: 10px;
+
+			button{
+				flex: 0 0 calc(50% - 5px); /* 横幅を半分に */
+    			margin: 0;
+    			color: white;
+    			border-radius: 10px;
+				border: #0f0f0f 1px solid;
+			}
+
+			.first-button{
+				background-color: #4169e1;
+				height: calc(70% - 5px); /* 高さを70%に */
+    			font-size: 5rem;
+			}
+			.first-button:hover{
+				background-color: #2149c1;
+			}
+			.first-button:active{
+				background-color: #001852;
+			}
+			.second-button{
+				background-color: #ff69b4;
+				height: calc(70% - 5px); /* 高さを70%に */
+				font-size: 5rem;
+			}
+			.second-button:hover{
+				background-color: #c84285;
+			}
+			.second-button:active{
+				background-color: #a0005c;
+			}
+			.third-button{
+				background-color: #c2d1fe;
+				height: calc(30% - 5px); /* 高さを30%に */
+    			font-size: 2rem;
+			}
+			.third-button:hover{
+				background-color: #a0b0e0;
+			}
+			.third-button:active{
+				background-color: #8080b0;
+			}
+			.fourth-button{
+				background-color: #f0c2c2;
+				height: calc(30% - 5px); /* 高さを30%に */
+				font-size: 2rem;
+			}
+			.fourth-button:hover{
+				background-color: #d0a0a0;
+			}
+			.fourth-button:active{
+				background-color: #b08080;
+			}
+		}
+		#setting{
+			flex: 1;
+			display: flex;
+			width: 95%;
+			margin-left: auto; margin-right: auto;margin-top: 1rem;
+			gap: 10px;
+			button{
+				flex: 1;
+				margin: 0.2rem;
+				border: 1px solid black;
+				font-size: 100%;
+				border-radius: 10px;
+			}
+			button:hover{
+				background-color: #a0a0a0;
+			}
+			button:active{
+				background-color: #0f0f0f;
+			}
+		}
+		#log{
+			height: 2rem;
+		}
+
+		.dialog_overlay {
+			position: fixed;
+			z-index: 9999;
+			background: rgba(0,0,0,0.4);
+			display: flex;
+			align-items: center;
+			justify-content: center;
+			width: 100vw; height: 100vh;
+
+			dialog{
+				border: none;
+				border-radius: 12px;
+				box-shadow: 0 2px 20px rgba(0,0,0,0.25);
+				padding: 30px 10px;
+				min-width: 280px;
+				font-size: 1.5em;
+				position: relative;
+				max-width: 90vw;
+				max-height: 80vh;
+				> div{
+					margin-bottom: 1.5em;
+					word-break: break-all;
+					overflow-y: scroll;
+					max-height: 75vh;
+				}
+				> button{
+					position: absolute;
+					right: 20px; bottom: 12px;
+					padding: 8px 20px;
+					border-radius: 8px;
+					border: none;
+					background: #0078d4;
+					font-weight: bold;
+					cursor: pointer;
+					transition: background 0.2s;
+					border-radius: 10px;
+				}
+				> button:hover{
+					background: #005fa3;
+				}
+			}
+		}
+		.result_button {
+			display: inline-block;
+			padding: 8px 20px;
+			background-color: #28a745;
+			color: white;
+			text-decoration: none;
+			font-size: 2rem;
+		}
+	</style>
+</head>
+<header>
+	<h1 class="header">入退場管理Ver 5  2025附高祭</h1>
+	<h3>ボタン連打中は送信されません。ボタンを押さない状態が3秒続くと一斉に送信されます。Googleのサーバーをまもるための措置です。</h3>
+	<style>.header {
+		text-align: center;
+		color: black;
+		padding: 10px 0;
+		font-size: 2rem;
+		font-weight: bold;
+		border-bottom: 2px solid #0078d4;
+	}</style>
+</header>
+<body>
+	<template id="dialog_template">
+		<div class="dialog_overlay">
+			<dialog open>
+				<div></div>
+				<button>閉じる</button>
+			</dialog>
+		</div>
+	</template>
+	<div id="main" class="buttons">
+		<button class="send first-button"  value="enter">入場</button>
+		<button class="send second-button"	 value="exit">退場</button>
+		<button class="send third-button"  value="cancel-enter">入場取り消し</button>
+		<button class="send fourth-button"  value="cancel-exit">退場取り消し</button>
+	</div>
+	<div id="setting">
+		<button id="help">操作説明</button>
+		<button id="check_log">この端末の情報</button>
+		<button class="result_button" id="result_button">スプレットシートを開く ↗ </button>
+
+	</div> 
+	<div id="log"></div> 
+
+	<script>
+		const API_ENDPOINT = "https://script.google.com/macros/s/AKfycbx4GwkM6yXIt45IsuNODSdjiUQ0MgYCSgCJE1bLxUSrdp4nLKxQgtDoUyazI6e2pZxVzw/exec";
+		const SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/1zF_6zrnMViriAWZucGEp2yEW7eqQYNu3uDGaR5VP55E/edit?usp=sharing";
+		const LOCALSTRAGE_ID = "FukoFes_count_UUID";
+
+		    let myIP = '0.0.0.0';
+    (async () => { 
+        try {
+            const response=await fetch('https://api.ipify.org?format=json');
+            if (!response.ok){throw new Error('HTTP error');}
+            const data=await response.json();
+            myIP = data.ip || '0.0.0.0';
+        } catch (e) {
+            myIP = '0.0.0.0';
+        }
+    })();
+    const my_UUID = localStorage.getItem(LOCALSTRAGE_ID) || (() => {
+        const temp = crypto.randomUUID();
+        localStorage.setItem(LOCALSTRAGE_ID, temp);
+        return temp;
+    })();
+
+    async function post_text_to_gas(text_data) {
+        if(text_data=="") return false;
+        const sleep=(ms)=>{return new Promise(resolve => setTimeout(resolve, ms));};
+        const max_retries=5;
+
+        console.log("【SEND】",text_data);
+
+        for (let i=0; i<max_retries; i++) {
+            try {
+                const res=await fetch(API_ENDPOINT+"#"+Date.now(), {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'text/plain' },
+                    body: text_data
+                });
+                if(!res.ok){throw new Error(`HTTP ${res.status}`);}
+                return await res.text();
+            } catch (err) {
+                if(i<max_retries-1) {
+                    await sleep(Math.floor(Math.random()*901)+100);
+                } else {
+                    alert("【エラー】正常に送信できませんでした。予備端末への交換をオススメします。\n何度もこのエラーが表示される場合は、ネットワークの問題の可能性があります。");
+                }
+            }
+        }
+        throw new Error('send failed');
+    }
+
+    function show_message_dialog(message_text) {
+        document.querySelectorAll('.message_dialog_overlay').forEach(e => e.remove());
+        const overlay = dialog_template.content.firstElementChild.cloneNode(true);
+
+        overlay.querySelector('dialog > div').innerHTML = message_text;
+        const button = overlay.querySelector('dialog > button');
+        const dialog = overlay.querySelector('dialog');
+
+        overlay.addEventListener('click', e => {
+            if (e.target === overlay) button.click();
+        });
+        button.addEventListener("click", e=>{
+            dialog.close(); overlay.remove();
+        });
+        dialog.addEventListener('click', e => e.stopPropagation());
+
+        document.body.appendChild(overlay);
+    }
+
+    // 表示用マッピング（任意）
+    const actionLabel = {
+        enter: '入場',
+        exit: '退場',
+        cancel: '取り消し'
+    };
+
+    let localBuffer = [];
+
+	// ボタン押下時はバッファに追加だけ
+	Array.from(document.getElementsByClassName('send')).forEach(e => {
+   	    e.addEventListener("click", () => {
+     	    const now_time = (() => {
+            	const pad = n => n.toString().padStart(2, '0');
+            	const d = new Date();
+            	return `${d.getFullYear()}/${pad(d.getMonth() + 1)}/${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+        	})();
+
+        	localBuffer.push(now_time + "," + myIP + "," + my_UUID + "," + e.value);
+        	log.textContent = now_time + "　ローカルに記録しました";
+			});
+	});
+
+	// 一定間隔でまとめ送信
+	setInterval(() => {
+    	if (localBuffer.length > 0) {
+     	   	const sending = localBuffer.join("\n"); // 複数行まとめる
+     	    localBuffer = []; // ローカルを空に
+     	    post_text_to_gas(sending)
+       	        .then(() => log.textContent = "まとめて送信しました")
+        	    .catch(() => {
+        			log.textContent = "送信失敗（ローカル保持中）";
+        			// 失敗時はデータを戻す
+        			localBuffer = sending.split("\n").concat(localBuffer);
+    			});
+    	}
+	}, 3000);
+
+
+
+    check_log.addEventListener("click", () => {
+        show_message_dialog(`
+
+<div style="font-size: 1.5rem; margin-bottom: 25px;">
+	<h3>【この端末の情報】</h3>
+	以下のリンクを押すと集積しているスプレッドシートを開くことが出来ます。<br>
+	ただし、このシステムを使用している全員が同じスプレッドシートに集計されます。<br>
+	そのため、以下に示すこの端末の「IPアドレス」および「端末固有ID」を使用してフィルタリングしてください。<br>
+	IPアドレス：<input disabled style="font-size: 1.5rem" value="${myIP}" size=${my_UUID.length}><br>
+	端末固有ID：<input disabled style="font-size: 1.5rem" value="${my_UUID}" size=${my_UUID.length}><br>
+	<a target="_blank" href="${SPREADSHEET_URL}">集積スプレッドシートを閲覧する</a>
+</div>
+		`);
+		});
+		help.addEventListener("click", () => {
+			show_message_dialog(`
+<h3>1.操作方法</h3>
+入場者は「入場」ボタンを押してください。スプレットシート上のデータベースに登録されます。<br>
+退場者は「退場」ボタンを押してください。<br>
+間違えたときは「入場取り消し」または「退場取り消し」ボタンを押してください。<br>
+逆に間違えて「入場取り消し」を押してしまった場合は「入場」ボタンを押してください。<br>
+
+<h3>2.「このデバイスの情報」ボタン</h3>
+このボタンを押すと、現在の端末の「IPアドレス」および「端末固有ID」を確認できます。<br>
+この情報は、スプレッドシート上でのフィルタリングに使用できます。<br>
+
+<h3>3.注意</h3>
+！：このwebサイトは公開されており、誰でもアクセスできる状態なので、URLはゲストに共有しないようにしてください。<br>
+なお、スプレッドシートも編集権限はありませんが、誰でも閲覧できる状態になっています。<br>
+
+			`);
+		});
+		result_button.addEventListener("click", () => {
+			window.open("https://docs.google.com/spreadsheets/d/1zF_6zrnMViriAWZucGEp2yEW7eqQYNu3uDGaR5VP55E/edit?gid=0#gid=0", "_blank", "noopener noreferrer");
+		});
+	</script>
+</body>
+</html>
